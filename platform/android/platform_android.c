@@ -34,7 +34,11 @@
 time_t last_activity;
 #endif
 
-#define PLATFORM_RECEIVE_BUFFER_SIZE 512
+#ifdef PLATFORM_PROFILE
+#include "jni_api.h"
+#endif
+
+#define PLATFORM_RECEIVE_BUFFER_SIZE 40000
 
 static result_t send_upstream_platform_message(const node_t* node, char* cmd, transport_client_t* tc, size_t data_size)
 {
@@ -163,16 +167,16 @@ static result_t external_calvinsys_release(calvinsys_t* calvinsys)
 
 static result_t external_calvinsys_input(calvinsys_t* calvinsys, char* command, char* data, size_t data_size)
 {
-	if (transport_create_tx_buffer(calvinsys->node->transport_client, BUFFER_SIZE) == SUCCESS) {
+	if (data_size < BUFFER_SIZE && transport_create_tx_buffer(calvinsys->node->transport_client, BUFFER_SIZE) == SUCCESS) {
 		char* buf = calvinsys->node->transport_client->tx_buffer.buffer + 4;
-
+		log("Sending upstream calvinsys data, command: %s", command);
 		buf = mp_encode_map(buf, 3);
 		buf = encode_str(&buf, "calvinsys", calvinsys->name, strlen(calvinsys->name)+1);
 		buf = encode_str(&buf, "command", command, strlen(command)+1);
 		buf = encode_bin(&buf, "payload", data, data_size);
 		return send_upstream_platform_message(calvinsys->node, EXTERNAL_CALVINSYS_PAYLOAD, calvinsys->node->transport_client, buf - calvinsys->node->transport_client->tx_buffer.buffer + 4);
 	} else {
-		log_error("could not allocate memory for tx buffer");
+		log_error("could not allocate memory for tx buffer. Tried to allocate %zu bytes.", data_size);
 		return FAIL;
 	}
 }
@@ -227,14 +231,27 @@ static result_t platform_handle_external_calvinsys_data(node_t* node, char* data
 	if (decode_string_from_map(data, "command", &command, &command_len) != SUCCESS) {
 		log_error("Could not parse command key");
 		return FAIL;
+	} else {
+		log("Parsed sys command: %s", command);
 	}
 	if (decode_string_from_map(data, "calvinsys", &calvinsys_name, &name_len) != SUCCESS) {
 		log_error("Could not parse calvinsys key.");
 		return FAIL;
+	} else {
+		log("Parsed sys name: %s", calvinsys_name);
 	}
 	if (decode_bin_from_map(data, "payload", &payload, &payload_len) != SUCCESS) {
 		log_error("Could not parse paylaod key");
 		return FAIL;
+	} else {
+		log("Received payload from calvinsys of size %d", payload_len);
+		int count = 0;
+		int i = 0;
+		for (i = 0; i < payload_len; i++) {
+			if (payload[i] == 0)
+				count ++;
+		}
+		log("0 count in payload: %d", count);
 	}
 
 	calvinsys_t* sys = (calvinsys_t*) list_get(node->calvinsys, calvinsys_name);
@@ -244,9 +261,24 @@ static result_t platform_handle_external_calvinsys_data(node_t* node, char* data
 		return FAIL;
 	}
 
-	sys->command = command;
-	sys->data = payload;
-	sys->data_size = size;
+	if (platform_mem_alloc((void**) &sys->command, command_len+1) != SUCCESS) {
+		log_error("Could not allocate memory for command");
+		return FAIL;
+	}
+	if (platform_mem_alloc((void**) &sys->data, payload_len+1) != SUCCESS) {
+		log_error("Could not allocate memory for payload");
+		return FAIL;
+	}
+
+	memset(sys->command, 0, command_len+1);
+	memcpy(sys->command, command, command_len);
+
+	memset(sys->data, 0, payload_len+1);
+	memcpy(sys->data, payload, payload_len);
+
+	// sys->command = command;
+	// sys->data = payload;
+	sys->data_size = payload_len;
 	sys->new_data = 1;
 	return SUCCESS;
 }
@@ -303,7 +335,8 @@ result_t platform_create(node_t* node)
 
 result_t handle_platform_call(node_t* node, int fd)
 {
-	char data_buffer[BUFFER_SIZE];
+	/*
+	char data_buffer[BUFFER_SIZE]; // TODO: Read 4 bytes, then allocate that amount of memory
 	int readstatus = read(fd, data_buffer, BUFFER_SIZE);
 	char cmd[3];
 	size_t total_msg_size;
@@ -314,6 +347,18 @@ result_t handle_platform_call(node_t* node, int fd)
 		return FAIL;
 	}
 	total_msg_size = get_message_len(data_buffer);
+	 */
+	char size_buffer[4];
+	char cmd[3];
+	size_t total_msg_size;
+	int readstatus, i;
+
+	readstatus = read(fd, size_buffer, 4);
+	total_msg_size = total_msg_size = get_message_len(size_buffer);
+	char data_buffer[total_msg_size];
+	memcpy(data_buffer, size_buffer, 4);
+	readstatus = read(fd, data_buffer+4, total_msg_size);
+
 	log("got downstream msg: %s, size in msg: %zu", data_buffer, total_msg_size);
 	memset(cmd, 0, 3);
 	memcpy(cmd, data_buffer+4, 2);
@@ -365,13 +410,13 @@ result_t platform_node_started(struct node_t* node)
 		log_error("Failed to write rt started command");
 		return FAIL;
 	}
+	trigger_profiler("Runtime started");
 	return SUCCESS;
 }
 
 result_t platform_create_calvinsys(struct node_t *node)
 {
 	android_platform_t* platform;
-
 	platform = (android_platform_t*) node->platform;
 	platform->looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
 	return SUCCESS;
@@ -454,6 +499,7 @@ void platform_evt_wait(node_t *node, struct timeval *timeout)
 
 result_t platform_stop(node_t* node)
 {
+	trigger_profiler("none");
 	// Write node stop on pipe, tc will not exist here
 	char buffer[6];
 
@@ -475,7 +521,6 @@ result_t platform_mem_alloc(void **buffer, uint32_t size)
 		log_error("Failed to allocate '%ld' memory", (unsigned long)size);
 		return FAIL;
 	}
-
 	log_debug("Allocated '%ld'", (unsigned long)size);
 	return SUCCESS;
 }
@@ -507,6 +552,7 @@ void platform_write_node_state(node_t* node, char *buffer, size_t size)
 		log_error("Failed to open calvinconstrained.config for writing");
 		log_error("Errno: %d, error: %s", errno, strerror(errno));
 	}
+	trigger_profiler("Serialized to disk");
 }
 
 result_t platform_read_node_state(node_t* node, char buffer[], size_t size)

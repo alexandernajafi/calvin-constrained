@@ -22,7 +22,7 @@
 
 #define MAX_TOKENS				5
 #define MAX_PENDING_MSGS	10
-#define MAX_TOKEN_SIZE		10
+#define MAX_TOKEN_SIZE		250000
 #define STORAGE_TUNNEL		"storage"
 #define TOKEN_TUNNEL			"token"
 #define UUID_BUFFER_SIZE	50

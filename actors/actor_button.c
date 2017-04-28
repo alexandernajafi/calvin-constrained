@@ -15,6 +15,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
+#include <platform/android/jni_api.h>
 #include "actor_button.h"
 #include "../port.h"
 #include "../token.h"
@@ -38,6 +39,7 @@ result_t actor_button_init(actor_t **actor, list_t *attributes)
 	button->init(button);
 	state->button = button;
 	(*actor)->instance_state = (void*) state;
+	trigger_profiler("Actor initiated");
 	return SUCCESS;
 }
 
@@ -56,6 +58,7 @@ bool actor_button_fire(struct actor_t *actor)
 						log_error("sent button pressed token failed");
 					} else {
 						button->new_data = 0;
+						trigger_profiler("Actor fire");
 						return true;
 					}
 				}

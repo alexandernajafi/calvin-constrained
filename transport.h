@@ -22,7 +22,7 @@
 #include "common.h"
 
 #ifdef PLATFORM_ANDROID
-#define BUFFER_SIZE					4096
+#define BUFFER_SIZE					40000
 #else
 #define BUFFER_SIZE					512
 #endif

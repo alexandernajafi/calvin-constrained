@@ -30,6 +30,7 @@ result_t token_set_data(token_t *token, const char *data, const size_t size);
 char *token_encode(char **buffer, token_t token, bool with_key);
 void token_set_double(token_t *token, const double value);
 void token_set_uint(token_t *token, const uint32_t value);
+void token_set_str(token_t *token, const char *data, const size_t size);
 result_t token_decode_uint(token_t token, uint32_t *value);
 void free_token(token_t *token);
 

@@ -51,6 +51,15 @@ char *token_encode(char **buffer, token_t token, bool with_key)
 	return *buffer;
 }
 
+void token_set_str(token_t *token, const char *data, const size_t size)
+{
+	token->size = mp_sizeof_str(size);
+	if (platform_mem_alloc((void **)&(token->value), token->size) == SUCCESS)
+		mp_encode_str(token->value, data, size);
+	else
+		log_error("Failed to allocate memory");
+}
+
 void token_set_double(token_t *token, const double value)
 {
 	token->size = mp_sizeof_double(value);

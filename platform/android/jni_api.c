@@ -23,6 +23,10 @@
 #include <unistd.h>
 #include "platform_android.h"
 
+#ifdef PLATFORM_PROFILE
+JavaVM* m_vm;
+#endif
+
 jlong get_jlong_from_pointer(void* ptr)
 {
 	long long_ptr = (long)ptr;
@@ -38,6 +42,9 @@ void* get_ptr_from_jlong(jlong ptr_value)
 
 JNIEXPORT jlong JNICALL Java_ericsson_com_calvin_calvin_1constrained_Calvin_runtimeInit(JNIEnv* env, jobject this, jstring j_proxy_uris, jstring j_name, jstring j_storage_dir)
 {
+#ifdef PLATFORM_PROFILE
+	(*env)->GetJavaVM(env, &m_vm);
+#endif
 	node_t* node;
 	char* storage_dir = (char*) (*env)->GetStringUTFChars(env, j_storage_dir, 0);
 	char* proxy_uris = (char*) (*env)->GetStringUTFChars(env, j_proxy_uris, 0);
@@ -154,7 +161,24 @@ JNIEXPORT void JNICALL Java_ericsson_com_calvin_calvin_1constrained_Calvin_write
 
 	memset(payload_data, 0, len);
 	(*env)->GetByteArrayRegion(env, data, 0, len, payload_data);
-	node = (node_t*)get_ptr_from_jlong(jnode);
+	node = (node_t*) get_ptr_from_jlong(jnode);
 	platform = (android_platform_t*) node->platform;
 	platform->send_downstream_platform_message(node, EXTERNAL_CALVINSYS_PAYLOAD, node->transport_client, payload_data, len);
 }
+
+#ifdef PLATFORM_PROFILE
+void trigger_profiler(char* key)
+{
+	JNIEnv* env;
+	(*m_vm)->AttachCurrentThread(m_vm, &env, NULL);
+	if (env != NULL) {
+		__android_log_print(ANDROID_LOG_VERBOSE, "PROFLER", "write meminfo jni c");
+		jclass clazz = (*env)->FindClass(env, "ericsson/com/calvin/calvin_constrained/CProfiler");
+		jmethodID method = (*env)->GetStaticMethodID(env, clazz, "writeMemInfo", "(Ljava/lang/String;)V");
+		jstring j_key = (*env)->NewStringUTF(env, key);
+		(*env)->CallStaticVoidMethod(env, clazz, method, j_key);
+	} else {
+		__android_log_print(ANDROID_LOG_VERBOSE, "PROFLER", "env was null.");
+	}
+}
+#endif

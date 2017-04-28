@@ -1,5 +1,6 @@
 package ericsson.com.calvin.calvin_constrained;
 
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -7,6 +8,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Debug;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -23,6 +25,18 @@ public class CCActivity extends PreferenceActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        int pid = android.os.Process.myPid();
+        Log.d(LOG_TAG, "Application PID: " + pid);
+        // Start profiler
+        super.onResume();
+        CProfiler.messure = false;
+        //CProfiler prof = new CProfiler(this, "cc_actor_button");
+
+        //prof.hprof_dumps = true;
+
+        //Thread th = new Thread(prof);
+        //th.start();
+
         getFragmentManager().beginTransaction().replace(android.R.id.content, new CalvinPreferenceFragment()).commit();
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -31,6 +45,11 @@ public class CCActivity extends PreferenceActivity {
         }
 
         Log.d(LOG_TAG, "FCM token: " + FirebaseInstanceId.getInstance().getToken());
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
     }
 
     @Override

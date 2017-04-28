@@ -15,6 +15,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
+#include <platform/android/jni_api.h>
 #include "tunnel.h"
 #include "platform.h"
 #include "proto.h"

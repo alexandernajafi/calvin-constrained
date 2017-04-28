@@ -25,6 +25,7 @@
 #include "actors/actor_gpiowriter.h"
 #include "actors/actor_temperature.h"
 #include "actors/actor_button.h"
+#include "actors/actor_camera.h"
 #include "platform.h"
 #include "msgpack_helper.h"
 #include "msgpuck/msgpuck.h"
@@ -34,7 +35,7 @@
 #endif
 
 #ifndef MICROPYTHON
-#define NBR_OF_ACTOR_TYPES 5
+#define NBR_OF_ACTOR_TYPES 6
 
 struct actor_type_t {
 	char type[50];
@@ -103,6 +104,17 @@ const struct actor_type_t actor_types[NBR_OF_ACTOR_TYPES] = {
 		NULL,
 		actor_button_will_end,
 		NULL,
+	},
+	{
+			"media.Camera",
+			actor_camera_init,
+			actor_camera_set_state,
+			actor_camera_free,
+			actor_camera_fire,
+			NULL,
+			NULL,
+			actor_camera_will_end,
+			NULL,
 	}
 };
 #endif

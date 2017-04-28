@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <platform/android/jni_api.h>
 #include "proto.h"
 #include "msgpuck/msgpuck.h"
 #include "msgpack_helper.h"

@@ -34,6 +34,7 @@ add_library(
              ../../../../actors/actor_gpiowriter.c
              ../../../../actors/actor_temperature.c
              ../../../../actors/actor_button.c
+             ../../../../actors/actor_camera.c
              ../../../../actors/actor_mpy.c
              # ../../../../libmpy/calvin_mpy_port.c
              # ../../../../libmpy/calvin_mpy_gpiohandler.c

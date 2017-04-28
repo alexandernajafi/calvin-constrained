@@ -94,6 +94,7 @@ public class CalvinService extends Service {
                     sendDownstreamCalvinSysMessage(message);
                     break;
             }
+            CProfiler.writeMemInfo("Payload from Calvin sys");
         }
     }
 
@@ -118,6 +119,7 @@ public class CalvinService extends Service {
             packer.packString(command+"\0");
 
             packer.packString("payload");
+            Log.d(LOG_TAG, "Packing binary payload of size " + payload.length);
             packer.packBinaryHeader(payload.length);
             packer.writePayload(payload);
 
@@ -138,6 +140,7 @@ public class CalvinService extends Service {
         }
         Message pack = Message.obtain(null, INIT_CALVINSYS);
         try {
+            CProfiler.writeMemInfo("Init Calvin sys");
             sys.outgoing.send(pack);
         } catch (RemoteException e) {
             e.printStackTrace();
@@ -234,6 +237,7 @@ public class CalvinService extends Service {
         this.registerReceiver(br, intentFilter);
 
         if (intentData != null && intentData.getBoolean(CLEAR_SERIALIZATION_FILE, false)) {
+            Log.d(LOG_TAG, "Remove serialization file");
             calvin.clearSerialization(storageDir);
         }
         calvin.runtimeSerialize = true;
@@ -246,19 +250,31 @@ public class CalvinService extends Service {
     @Override
     public void onDestroy() {
         Log.d(LOG_TAG, "Destorying Calvin service");
-        this.unregisterReceiver(br);
+        try {
+            this.unregisterReceiver(br);
+        } catch (IllegalArgumentException e) {
+            Log.d(LOG_TAG, "BR Was not registered.");
+        }
+
         if (calvin.nodeState != Calvin.STATE.NODE_STOP) {
             if (calvin.runtimeSerialize)
                 calvin.runtimeSerializeAndStop(calvin.node);
             else
                 calvin.runtimeStop(calvin.node);
         }
+        CProfiler.writeMemInfo("Service destroyed");
     }
 
     @Override
     public IBinder onBind(Intent intent) {
+
         Log.d(LOG_TAG, "onbind");
-        return msg.getBinder();
+        if (calvin == null)
+            return null;
+
+        IBinder binder = msg.getBinder();
+        CProfiler.writeMemInfo("External app bind");
+        return binder;
     }
 }
 

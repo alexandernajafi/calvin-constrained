@@ -28,6 +28,7 @@ android {
                 cFlags "-DPARSE_ARGS"
                 cFlags "-DPLATFORM_ANDROID"
                 cFlags "-DDEBUG"
+                cFlags "-DPLATFORM_PROFILE"
                 cFlags "-DMICROPYTHON_HEAP_SIZE=20*1024"
                 cFlags "--std=gnu99"
             }

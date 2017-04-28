@@ -27,6 +27,8 @@
 
 #ifdef PLATFORM_ANDROID
 # include <sys/socket.h>
+#include <platform/android/jni_api.h>
+
 #endif
 
 #define LOCATION_SIZE       100
@@ -233,9 +235,11 @@ static void transport_socket_free(transport_client_t *transport_client)
 	platform_mem_free((void *)transport_client);
 }
 
+int rand_c = 12;
+
 static result_t transport_socket_connect(node_t *node, transport_client_t *transport_client)
 {
-	transport_socket_client_t *transport_socket = (transport_socket_client_t *)transport_client->client_state;
+	transport_socket_client_t *transport_socket = (transport_socket_client_t *) transport_client->client_state;
 	struct sockaddr_in server;
 
 	transport_socket->fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -247,7 +251,7 @@ static result_t transport_socket_connect(node_t *node, transport_client_t *trans
 	server.sin_addr.s_addr = inet_addr(transport_socket->ip);
 	server.sin_port = htons(transport_socket->port);
 	server.sin_family = AF_INET;
-
+	rand_c += 10;
 	if (connect(transport_socket->fd, (struct sockaddr *)&server, sizeof(server)) < 0) {
 		log_error("Failed to connect socket");
 		return FAIL;

@@ -15,6 +15,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
+#include <platform/android/jni_api.h>
 #include "actor_identity.h"
 #include "../port.h"
 #include "../token.h"
@@ -45,6 +46,8 @@ result_t actor_identity_init(actor_t **actor, list_t *attributes)
 	state->dump = dump;
 	(*actor)->instance_state = (void *)state;
 
+	trigger_profiler("Actor initiated");
+
 	return SUCCESS;
 }
 
@@ -64,6 +67,7 @@ bool actor_identity_fire(struct actor_t *actor)
 		if (token_decode_uint(*in_token, &in_data) == SUCCESS) {
 			token_set_uint(&out_token, in_data);
 			if (fifo_write(&outport->fifo, out_token.value, out_token.size) == SUCCESS) {
+				trigger_profiler("Actor fire");
 				fifo_commit_read(&inport->fifo);
 				return true;
 			}
